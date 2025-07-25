@@ -1,4 +1,4 @@
-#include "cad_core/OCAFDocument.h"
+﻿#include "cad_core/OCAFDocument.h"
 #include <TDocStd_Application.hxx>
 #include <TDocStd_Document.hxx>
 #include <TDF_ChildIterator.hxx>

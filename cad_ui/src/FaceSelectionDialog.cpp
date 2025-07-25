@@ -1,4 +1,4 @@
-#include "cad_ui/FaceSelectionDialog.h"
+﻿#include "cad_ui/FaceSelectionDialog.h"
 #include "cad_ui/QtOccView.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>

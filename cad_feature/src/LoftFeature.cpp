@@ -1,4 +1,4 @@
-#include "cad_feature/LoftFeature.h"
+﻿#include "cad_feature/LoftFeature.h"
 #include "cad_core/CreateSphereCommand.h"
 #include <BRepOffsetAPI_ThruSections.hxx>
 #include <algorithm>

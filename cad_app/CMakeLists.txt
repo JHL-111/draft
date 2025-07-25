@@ -1,4 +1,4 @@
-set(TARGET_NAME cad_app)
+﻿set(TARGET_NAME cad_app)
 
 # 源文件
 set(SOURCES

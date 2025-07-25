@@ -1,4 +1,4 @@
-#include "cad_ui/PropertyPanel.h"
+﻿#include "cad_ui/PropertyPanel.h"
 
 namespace cad_ui {
 

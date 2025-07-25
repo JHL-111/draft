@@ -1,4 +1,4 @@
-#include "cad_core/CreateBoxCommand.h"
+﻿#include "cad_core/CreateBoxCommand.h"
 #include "cad_core/ShapeFactory.h"
 
 namespace cad_core {

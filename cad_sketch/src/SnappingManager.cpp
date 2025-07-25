@@ -1,4 +1,4 @@
-#include "cad_sketch/SnappingManager.h"
+﻿#include "cad_sketch/SnappingManager.h"
 #include "cad_sketch/SketchLine.h"
 #include "cad_sketch/SketchCircle.h"
 #include "cad_sketch/SketchArc.h"

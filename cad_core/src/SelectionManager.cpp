@@ -1,4 +1,4 @@
-#include "cad_core/SelectionManager.h"
+﻿#include "cad_core/SelectionManager.h"
 #include <AIS_Selection.hxx>
 #include <SelectMgr_EntityOwner.hxx>
 #include <StdSelect_BRepOwner.hxx>

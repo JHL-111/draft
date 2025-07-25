@@ -1,4 +1,4 @@
-#include "cad_ui/CreatePrimitiveDialog.h"
+﻿#include "cad_ui/CreatePrimitiveDialog.h"
 #include <QApplication>
 
 namespace cad_ui {

@@ -1,4 +1,4 @@
-#include "cad_core/TransformCommand.h"
+﻿#include "cad_core/TransformCommand.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Vec.hxx>
 #include <gp_Ax1.hxx>

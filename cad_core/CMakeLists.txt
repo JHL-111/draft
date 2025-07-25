@@ -1,4 +1,4 @@
-set(TARGET_NAME cad_core)
+﻿set(TARGET_NAME cad_core)
 
 # 头文件
 set(HEADERS

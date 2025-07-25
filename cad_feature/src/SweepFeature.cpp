@@ -1,4 +1,4 @@
-#include "cad_feature/SweepFeature.h"
+﻿#include "cad_feature/SweepFeature.h"
 #include "cad_core/CreateBoxCommand.h"
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <cmath>

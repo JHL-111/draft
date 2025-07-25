@@ -1,4 +1,4 @@
-#include "cad_sketch/Sketch.h"
+﻿#include "cad_sketch/Sketch.h"
 #include <algorithm>
 
 namespace cad_sketch {

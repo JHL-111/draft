@@ -1,4 +1,4 @@
-#include "cad_core/CreateSphereCommand.h"
+﻿#include "cad_core/CreateSphereCommand.h"
 #include "cad_core/ShapeFactory.h"
 
 namespace cad_core {

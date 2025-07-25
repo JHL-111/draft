@@ -1,4 +1,4 @@
-#include "cad_core/FilletChamferOperations.h"
+﻿#include "cad_core/FilletChamferOperations.h"
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepCheck_Analyzer.hxx>

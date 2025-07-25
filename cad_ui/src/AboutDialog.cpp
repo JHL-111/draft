@@ -1,4 +1,4 @@
-#include "cad_ui/AboutDialog.h"
+﻿#include "cad_ui/AboutDialog.h"
 #include <QPixmap>
 #include <QApplication>
 

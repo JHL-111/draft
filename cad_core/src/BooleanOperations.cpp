@@ -1,4 +1,4 @@
-#include "cad_core/BooleanOperations.h"
+﻿#include "cad_core/BooleanOperations.h"
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>

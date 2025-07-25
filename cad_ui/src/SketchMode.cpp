@@ -1,4 +1,4 @@
-#include "cad_ui/SketchMode.h"
+﻿#include "cad_ui/SketchMode.h"
 #include "cad_ui/QtOccView.h"
 #include "cad_sketch/SketchPoint.h"
 #include <QMouseEvent>

@@ -1,4 +1,4 @@
-#include "cad_core/ShapeFactory.h"
+﻿#include "cad_core/ShapeFactory.h"
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>

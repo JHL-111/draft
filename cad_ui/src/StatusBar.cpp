@@ -1,4 +1,4 @@
-#include "cad_ui/StatusBar.h"
+﻿#include "cad_ui/StatusBar.h"
 #include <QString>
 
 namespace cad_ui {

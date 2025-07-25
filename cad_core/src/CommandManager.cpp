@@ -1,4 +1,4 @@
-#include "cad_core/CommandManager.h"
+﻿#include "cad_core/CommandManager.h"
 
 namespace cad_core {
 

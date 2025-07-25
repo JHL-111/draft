@@ -1,4 +1,4 @@
-#include "cad_core/Point.h"
+﻿#include "cad_core/Point.h"
 #include <gp_XYZ.hxx>
 
 namespace cad_core {

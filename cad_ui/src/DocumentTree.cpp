@@ -1,4 +1,4 @@
-#include "cad_ui/DocumentTree.h"
+﻿#include "cad_ui/DocumentTree.h"
 #include <QHeaderView>
 
 Q_DECLARE_METATYPE(cad_core::ShapePtr)

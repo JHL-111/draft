@@ -1,4 +1,4 @@
-#include "cad_ui/ThemeManager.h"
+﻿#include "cad_ui/ThemeManager.h"
 #include <QStyle>
 
 namespace cad_ui {
