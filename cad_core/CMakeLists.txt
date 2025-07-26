@@ -10,6 +10,7 @@ set(HEADERS
     include/cad_core/CreateBoxCommand.h
     include/cad_core/CreateCylinderCommand.h
     include/cad_core/CreateSphereCommand.h
+    include/cad_core/CreateTorusCommand.h
     include/cad_core/TransformCommand.h
     include/cad_core/OCAFDocument.h
     include/cad_core/OCAFManager.h
@@ -27,6 +28,7 @@ set(SOURCES
     src/CreateBoxCommand.cpp
     src/CreateCylinderCommand.cpp
     src/CreateSphereCommand.cpp
+    src/CreateTorusCommand.cpp
     src/TransformCommand.cpp
     src/OCAFDocument.cpp
     src/OCAFManager.cpp
@@ -36,7 +38,7 @@ set(SOURCES
 )
 
 # 创建静态库
-add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES} "include/cad_core/CreateTorusCommand.h" "src/CreateTorusCommand.cpp")
+add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES} )
 
 # 包含目录
 target_include_directories(${TARGET_NAME} PUBLIC 

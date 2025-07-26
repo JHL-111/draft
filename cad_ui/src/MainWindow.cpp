@@ -1127,15 +1127,15 @@ void MainWindow::OnCreateSphere() {
 void MainWindow::OnCreateTorus() {
     CreateTorusDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
-        // 2. 从对话框中获取用户输入的参数
         double majorRadius = dialog.GetMajorRadius();
         double minorRadius = dialog.GetMinorRadius();
 
         m_ocafManager->StartTransaction("Create Torus");
 
-        auto shape = cad_core::ShapeFactory::CreateTorus(cad_core::Point(0, 0, 0), majorRadius, minorRadius);
+        try {
 
-        if (shape) {
+            auto shape = cad_core::ShapeFactory::CreateTorus(cad_core::Point(0, 0, 0), majorRadius, minorRadius);
+
             if (m_ocafManager->AddShape(shape, "Torus")) {
                 m_viewer->DisplayShape(shape);
                 m_documentTree->AddShape(shape);
@@ -1145,13 +1145,13 @@ void MainWindow::OnCreateTorus() {
                 UpdateActions();
             }
             else {
-                m_ocafManager->AbortTransaction();
-                QMessageBox::warning(this, "Error", "Failed to add torus to document.");
+                throw std::runtime_error("Failed to add torus to the document.");
             }
         }
-        else {
-            m_ocafManager->AbortTransaction();
-            QMessageBox::warning(this, "Error", "Failed to create torus. Check parameters.");
+        catch (const std::exception& e) {
+
+            m_ocafManager->AbortTransaction(); 
+            QMessageBox::warning(this, "Error Creating Torus", e.what());
         }
     }
 }

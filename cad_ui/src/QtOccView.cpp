@@ -432,23 +432,25 @@ void QtOccView::resizeEvent(QResizeEvent* event) {
 }
 
 void QtOccView::mousePressEvent(QMouseEvent* event) {
-    m_lastMousePos = event->pos();
-    m_currentMouseButton = event->button();
+    
     
 	// 处理视图立方体的点击事件
     if (event->button() == Qt::LeftButton && !m_context.IsNull()) {
         m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
-        Handle(AIS_InteractiveObject) detectedObject = m_context->DetectedInteractive();
-
-        // 检查检测到的对象是否是 AIS_ViewCube
-        if (!detectedObject.IsNull() && detectedObject->IsKind(STANDARD_TYPE(AIS_ViewCube))) {
-
-            // 如果是视图立方体，则调用 Select() 方法来触发视角切换          
-            m_context->Select(Standard_True);
-            event->accept();
-            return;
+        if (m_context->HasDetected()) { 
+            Handle(AIS_InteractiveObject) detectedObject = m_context->DetectedInteractive();
+            // 检查检测到的对象是否是 AIS_ViewCube
+            if (!detectedObject.IsNull() && detectedObject->IsKind(STANDARD_TYPE(AIS_ViewCube))) {
+                // 如果是视图立方体，则调用 Select() 方法来触发视角切换          
+                m_context->Select(Standard_True);
+                event->accept();
+                return;
+            }
         }
     }
+
+    m_lastMousePos = event->pos();
+    m_currentMouseButton = event->button();
 
     // 优先处理草图模式
     if (IsInSketchMode()) {
