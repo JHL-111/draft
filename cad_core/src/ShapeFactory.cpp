@@ -2,8 +2,10 @@
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
+#include <BRepPrimAPI_MakeTorus.hxx>
 #include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>
+#pragma execution_character_set("utf-8")
 
 namespace cad_core {
 
@@ -83,4 +85,28 @@ ShapePtr ShapeFactory::CreateSphere(double radius) {
     return CreateSphere(Point(0, 0, 0), radius);
 }
 
-} // namespace cad_core
+// 在 ShapeFactory.cpp 中实现
+ShapePtr ShapeFactory::CreateTorus(const Point& center,double majorRadius,double minorRadius) {
+    try {
+        // 确保参数有效
+        if (majorRadius <= 0 || minorRadius <= 0) {
+            throw std::invalid_argument("圆环半径必须为正值");
+        }
+
+        // 使用OpenCASCADE创建圆环
+        gp_Ax2 axis(gp_Pnt(center.X(), center.Y(), center.Z()), gp_Dir(0, 0, 1));
+        BRepPrimAPI_MakeTorus torusMaker(axis, majorRadius, minorRadius);
+
+        if (!torusMaker.IsDone()) {
+            throw std::runtime_error("圆环创建失败");
+        }
+
+        return std::make_shared<Shape>(torusMaker.Shape());
+    }
+    catch (const Standard_Failure& e) {
+        // 处理OpenCASCADE异常
+        throw std::runtime_error("OpenCASCADE错误: " + std::string(e.GetMessageString()));
+    }
+}
+} 
+

@@ -1,6 +1,6 @@
 ﻿#include "cad_ui/StatusBar.h"
 #include <QString>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 StatusBar::StatusBar(QWidget* parent) : QStatusBar(parent), m_mousePositionLabel(nullptr) {

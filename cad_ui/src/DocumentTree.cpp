@@ -1,6 +1,6 @@
 ﻿#include "cad_ui/DocumentTree.h"
 #include <QHeaderView>
-
+#pragma execution_character_set("utf-8")
 Q_DECLARE_METATYPE(cad_core::ShapePtr)
 Q_DECLARE_METATYPE(cad_feature::FeaturePtr)
 

@@ -105,6 +105,7 @@ private slots:
     void OnCreateBox();
     void OnCreateCylinder();
     void OnCreateSphere();
+	void OnCreateTorus();
     void OnCreateExtrude();
     void OnCreateRevolve();
     void OnCreateSweep();
@@ -255,6 +256,7 @@ private:
     QAction* m_createBoxAction;
     QAction* m_createCylinderAction;
     QAction* m_createSphereAction;
+    QAction* m_createTorusAction;
     QAction* m_createExtrudeAction;
     QAction* m_createRevolveAction;
     QAction* m_createSweepAction;

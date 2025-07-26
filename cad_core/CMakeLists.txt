@@ -36,7 +36,7 @@ set(SOURCES
 )
 
 # 创建静态库
-add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES})
+add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES} "include/cad_core/CreateTorusCommand.h" "src/CreateTorusCommand.cpp")
 
 # 包含目录
 target_include_directories(${TARGET_NAME} PUBLIC 

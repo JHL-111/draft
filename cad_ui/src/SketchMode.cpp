@@ -12,7 +12,7 @@
 #include <Geom_Plane.hxx>
 #include <V3d_View.hxx>
 #include <cmath>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 // =============================================================================

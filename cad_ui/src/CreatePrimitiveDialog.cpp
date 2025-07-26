@@ -1,6 +1,6 @@
 ﻿#include "cad_ui/CreatePrimitiveDialog.h"
 #include <QApplication>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 // CreateBoxDialog Implementation
@@ -154,6 +154,57 @@ void CreateSphereDialog::SetupUI() {
 
 double CreateSphereDialog::GetRadius() const {
     return m_radiusSpinBox->value();
+}
+
+// CreateTorusDialog Implementation
+CreateTorusDialog::CreateTorusDialog(QWidget* parent) : QDialog(parent) {
+    setWindowTitle("Create Torus");
+    setModal(true);
+    resize(300, 150);
+
+    SetupUI();
+}
+
+void CreateTorusDialog::SetupUI() {
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+
+    // Parameters group
+    QGroupBox* paramGroup = new QGroupBox("Torus Parameters");
+    QFormLayout* formLayout = new QFormLayout(paramGroup);
+
+    // Major Radius
+    m_majorRadiusSpinBox = new QDoubleSpinBox();
+    m_majorRadiusSpinBox->setRange(0.1, 1000.0);
+    m_majorRadiusSpinBox->setValue(10.0);
+    m_majorRadiusSpinBox->setDecimals(3);
+    m_majorRadiusSpinBox->setSuffix(" mm");
+    formLayout->addRow("Major Radius:", m_majorRadiusSpinBox);
+
+    // Minor Radius
+    m_minorRadiusSpinBox = new QDoubleSpinBox();
+    m_minorRadiusSpinBox->setRange(0.1, 1000.0);
+    m_minorRadiusSpinBox->setValue(2.0);
+    m_minorRadiusSpinBox->setDecimals(3);
+    m_minorRadiusSpinBox->setSuffix(" mm");
+    formLayout->addRow("Minor Radius:", m_minorRadiusSpinBox);
+
+    // Button box
+    QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    mainLayout->addWidget(paramGroup);
+    mainLayout->addWidget(buttonBox);
+
+    setLayout(mainLayout);
+}
+
+double CreateTorusDialog::GetMajorRadius() const {
+    return m_majorRadiusSpinBox->value();
+}
+
+double CreateTorusDialog::GetMinorRadius() const {
+    return m_minorRadiusSpinBox->value();
 }
 
 } // namespace cad_ui

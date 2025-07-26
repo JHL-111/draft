@@ -5,6 +5,7 @@
 #include "cad_core/CreateBoxCommand.h"
 #include "cad_core/CreateCylinderCommand.h"
 #include "cad_core/CreateSphereCommand.h"
+#include "cad_core/CreateTorusCommand.h"
 #include "cad_core/OCAFManager.h"
 #include "cad_core/ShapeFactory.h"
 #include "cad_core/BooleanOperations.h"
@@ -231,6 +232,9 @@ void MainWindow::CreateActions() {
     
     m_createSphereAction = new QAction("Create &Sphere", this);
     m_createSphereAction->setStatusTip("Create a sphere");
+
+    m_createTorusAction = new QAction("Create &Torus", this); 
+    m_createTorusAction->setStatusTip("Create a torus");     
     
     m_createExtrudeAction = new QAction("Create &Extrude", this);
     m_createExtrudeAction->setStatusTip("Create an extrude feature");
@@ -331,6 +335,7 @@ void MainWindow::CreateMenus() {
     createMenu->addAction(m_createBoxAction);
     createMenu->addAction(m_createCylinderAction);
     createMenu->addAction(m_createSphereAction);
+    createMenu->addAction(m_createTorusAction);
     createMenu->addSeparator();
     createMenu->addAction(m_createExtrudeAction);
     
@@ -489,6 +494,11 @@ void MainWindow::CreateToolBars() {
     sphereBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     primitivesButtonsLayout->addWidget(sphereBtn);
     
+    QToolButton* torusBtn = new QToolButton();
+    torusBtn->setDefaultAction(m_createTorusAction);
+    torusBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    primitivesButtonsLayout->addWidget(torusBtn);
+
     primitivesLayout->addLayout(primitivesButtonsLayout);
     designLayout->addWidget(primitivesFrame);
     
@@ -769,6 +779,7 @@ void MainWindow::ConnectSignals() {
     connect(m_createBoxAction, &QAction::triggered, this, &MainWindow::OnCreateBox);
     connect(m_createCylinderAction, &QAction::triggered, this, &MainWindow::OnCreateCylinder);
     connect(m_createSphereAction, &QAction::triggered, this, &MainWindow::OnCreateSphere);
+    connect(m_createTorusAction, &QAction::triggered, this, &MainWindow::OnCreateTorus);
     connect(m_createExtrudeAction, &QAction::triggered, this, &MainWindow::OnCreateExtrude);
     
     // Boolean actions
@@ -1112,6 +1123,39 @@ void MainWindow::OnCreateSphere() {
         }
     }
 }
+
+void MainWindow::OnCreateTorus() {
+    CreateTorusDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        // 2. 从对话框中获取用户输入的参数
+        double majorRadius = dialog.GetMajorRadius();
+        double minorRadius = dialog.GetMinorRadius();
+
+        m_ocafManager->StartTransaction("Create Torus");
+
+        auto shape = cad_core::ShapeFactory::CreateTorus(cad_core::Point(0, 0, 0), majorRadius, minorRadius);
+
+        if (shape) {
+            if (m_ocafManager->AddShape(shape, "Torus")) {
+                m_viewer->DisplayShape(shape);
+                m_documentTree->AddShape(shape);
+
+                m_ocafManager->CommitTransaction();
+                SetDocumentModified(true);
+                UpdateActions();
+            }
+            else {
+                m_ocafManager->AbortTransaction();
+                QMessageBox::warning(this, "Error", "Failed to add torus to document.");
+            }
+        }
+        else {
+            m_ocafManager->AbortTransaction();
+            QMessageBox::warning(this, "Error", "Failed to create torus. Check parameters.");
+        }
+    }
+}
+
 
 void MainWindow::OnCreateExtrude() {
     QMessageBox::information(this, "Create Extrude", "Extrude feature creation not implemented yet");

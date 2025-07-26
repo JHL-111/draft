@@ -63,4 +63,21 @@ private:
     void SetupUI();
 };
 
+class CreateTorusDialog : public QDialog {
+    Q_OBJECT
+
+public:
+    explicit CreateTorusDialog(QWidget* parent = nullptr);
+    ~CreateTorusDialog() = default;
+
+    double GetMajorRadius() const;
+    double GetMinorRadius() const;
+
+private:
+    QDoubleSpinBox* m_majorRadiusSpinBox;
+    QDoubleSpinBox* m_minorRadiusSpinBox;
+
+    void SetupUI();
+};
+
 } // namespace cad_ui

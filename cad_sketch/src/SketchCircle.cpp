@@ -1,6 +1,7 @@
 ﻿#include "cad_sketch/SketchCircle.h"
 #include <cmath>
 #include <sstream>
+#pragma execution_character_set("utf-8")
 
 namespace cad_sketch {
 

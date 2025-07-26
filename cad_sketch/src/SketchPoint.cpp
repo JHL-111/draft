@@ -1,6 +1,7 @@
 ﻿#include "cad_sketch/SketchPoint.h"
 #include <sstream>
 #include <gp_XYZ.hxx>
+#pragma execution_character_set("utf-8")
 
 namespace cad_sketch {
 

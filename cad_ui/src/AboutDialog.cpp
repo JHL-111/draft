@@ -1,7 +1,7 @@
 ﻿#include "cad_ui/AboutDialog.h"
 #include <QPixmap>
 #include <QApplication>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {

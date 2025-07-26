@@ -1,6 +1,6 @@
 ﻿#include "cad_ui/ThemeManager.h"
 #include <QStyle>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 ThemeManager::ThemeManager(QObject* parent) : QObject(parent), m_currentTheme("light") {

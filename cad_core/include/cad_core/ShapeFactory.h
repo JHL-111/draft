@@ -16,6 +16,8 @@ public:
     static ShapePtr CreateSphere(const Point& center, double radius);
     static ShapePtr CreateSphere(double radius);
     
+    static ShapePtr CreateTorus(const Point& center, double majorRadius, double minorRadius);
+
 private:
     ShapeFactory() = default;
 };

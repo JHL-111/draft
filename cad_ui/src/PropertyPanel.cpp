@@ -1,5 +1,5 @@
 ﻿#include "cad_ui/PropertyPanel.h"
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 PropertyPanel::PropertyPanel(QWidget* parent) : QWidget(parent) {

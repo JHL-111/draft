@@ -8,7 +8,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <AIS_ListOfInteractive.hxx>
-
+#pragma execution_character_set("utf-8")
 namespace cad_ui {
 
 FaceSelectionDialog::FaceSelectionDialog(QtOccView* viewer, QWidget* parent)

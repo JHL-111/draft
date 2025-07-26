@@ -4,6 +4,7 @@
 #include "cad_sketch/SketchArc.h"
 #include <cmath>
 #include <algorithm>
+#pragma execution_character_set("utf-8")
 
 namespace cad_sketch {
 
