@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QDebug>
 #include <BRep_Tool.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
 #include <gp_Pln.hxx>
 #include <gp_Pnt.hxx>
@@ -13,6 +14,10 @@
 #include <V3d_View.hxx>
 #include <cmath>
 #pragma execution_character_set("utf-8")
+#include <AIS_Shape.hxx>
+#include <ElSLib.hxx>
+#include <V3d_View.hxx>
+
 namespace cad_ui {
 
 // =============================================================================
@@ -44,6 +49,7 @@ void SketchRectangleTool::UpdateDrawing(const QPoint& currentPoint) {
     gp_Pnt currentPnt = ScreenToSketchPlane(m_currentPoint);
     
     m_currentLines = CreateRectangleLines(startPnt, currentPnt);
+	emit previewUpdated(m_currentLines);    
 }
 
 void SketchRectangleTool::FinishDrawing(const QPoint& endPoint) {
@@ -96,15 +102,21 @@ gp_Pnt SketchRectangleTool::ScreenToSketchPlane(const QPoint& screenPoint) {
     if (m_view.IsNull()) {
         return gp_Pnt(0, 0, 0);
     }
-    
-    // 简化处理：直接使用屏幕坐标作为2D草图坐标
-    // 在真实实现中，这里需要复杂的投影计算
-    double scale = 0.1;  // 缩放因子
-    double x = (screenPoint.x() - 400) * scale;  // 中心化并缩放
-    double y = -(screenPoint.y() - 300) * scale; // Y轴反向并中心化
-    double z = 0.0; // 草图平面上Z=0
-    
-    return gp_Pnt(x, y, z);
+
+    Standard_Real aGridX, aGridY, aGridZ;
+
+    // 使用 ConvertToGrid 函数，这是将屏幕点投影到视图平面的最直接方法
+    m_view->ConvertToGrid(screenPoint.x(), screenPoint.y(), aGridX, aGridY, aGridZ);
+
+    gp_Pnt aPntOnPlane(aGridX, aGridY, aGridZ);
+
+    // 将计算出的3D点，再次投影到我们精确的草图平面上，以消除任何微小的浮点误差
+    Standard_Real u, v;
+    ElSLib::Parameters(m_sketchPlane, aPntOnPlane, u, v);
+    gp_Pnt2d pnt2d(u, v);
+
+    // 返回一个在草图平面上的3D点（Z坐标为0）
+    return gp_Pnt(pnt2d.X(), pnt2d.Y(), 0);
 }
 
 std::vector<cad_sketch::SketchLinePtr> SketchRectangleTool::CreateRectangleLines(
@@ -150,6 +162,8 @@ SketchMode::SketchMode(QtOccView* viewer, QObject* parent)
             this, &SketchMode::OnRectangleCreated);
     connect(m_rectangleTool.get(), &SketchRectangleTool::drawingCancelled,
             this, &SketchMode::OnDrawingCancelled);
+    connect(m_rectangleTool.get(), &SketchRectangleTool::previewUpdated,
+        this, &SketchMode::UpdatePreview);
 }
 
 bool SketchMode::EnterSketchMode(const TopoDS_Face& face) {
@@ -232,6 +246,9 @@ void SketchMode::ExitSketchMode() {
     // 恢复视图
     RestoreView();
     
+	// 清除草图显示
+	ClearAllSketchDisplay();
+
     // 清理草图数据
     m_currentSketch.reset();
     m_sketchFace = TopoDS_Face();
@@ -311,9 +328,12 @@ void SketchMode::OnRectangleCreated(const std::vector<cad_sketch::SketchLinePtr>
         return;
     }
     
+	ClearPreviewDisplay(); // 清除预览图形    
+
     // 将线条添加到草图中
     for (const auto& line : lines) {
         m_currentSketch->AddElement(line);
+		DisplaySketchElement(line); // 显示草图元素   
         emit sketchElementCreated(line);
     }
     
@@ -323,6 +343,7 @@ void SketchMode::OnRectangleCreated(const std::vector<cad_sketch::SketchLinePtr>
 }
 
 void SketchMode::OnDrawingCancelled() {
+	ClearPreviewDisplay(); // 清除预览图形    
     emit statusMessageChanged("绘制已取消");
 }
 
@@ -464,6 +485,71 @@ gp_Pln SketchMode::ExtractPlaneFromFace(const TopoDS_Face& face) {
         qDebug() << "Error extracting plane from face:" << e.what();
         return gp_Pln(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1));
     }
+}
+
+// 将 SketchLine 转换为 TopoDS_Edge
+TopoDS_Edge SketchMode::ConvertLineToEdge(const cad_sketch::SketchLinePtr& line) const {
+    const auto& p1 = line->GetStartPoint()->GetPoint().GetOCCTPoint();
+    const auto& p2 = line->GetEndPoint()->GetPoint().GetOCCTPoint();
+    
+    if (p1.IsEqual(p2, 1e-9)) {
+        return TopoDS_Edge(); // 如果点重合，返回一个空的无效Edge，阻止崩溃
+    }
+    
+    return BRepBuilderAPI_MakeEdge(p1, p2).Edge();
+}
+
+// 清除预览图形
+void SketchMode::ClearPreviewDisplay() {
+    if (!m_viewer || m_viewer->GetContext().IsNull()) return;
+    for (const auto& shape : m_previewElements) {
+        m_viewer->GetContext()->Remove(shape, Standard_False);
+    }
+    m_previewElements.clear();
+}
+
+// 更新预览图形
+void SketchMode::UpdatePreview(const std::vector<cad_sketch::SketchLinePtr>& previewLines) {
+    if (!m_viewer || m_viewer->GetContext().IsNull()) return;
+
+    ClearPreviewDisplay(); // 先清除旧的预览
+
+    for (const auto& line : previewLines) {
+        TopoDS_Edge edge = ConvertLineToEdge(line);
+        auto aisShape = new AIS_Shape(edge);
+        // 设置预览样式，例如虚线
+        aisShape->Attributes()->SetLineAspect(new Prs3d_LineAspect(Quantity_NOC_BLUE1, Aspect_TOL_DOT, 2.0));
+        m_previewElements.push_back(aisShape);
+        m_viewer->GetContext()->Display(aisShape, Standard_False);
+    }
+    m_viewer->GetView()->Redraw(); // 立即重绘视图
+}
+
+// 显示最终的草图元素
+void SketchMode::DisplaySketchElement(const cad_sketch::SketchElementPtr& element) {
+    if (!m_viewer || m_viewer->GetContext().IsNull() || !element) return;
+
+    if (element->GetType() == cad_sketch::SketchElementType::Line) {
+        auto line = std::dynamic_pointer_cast<cad_sketch::SketchLine>(element);
+        TopoDS_Edge edge = ConvertLineToEdge(line);
+        auto aisShape = new AIS_Shape(edge);
+        // 设置最终样式
+        aisShape->Attributes()->SetLineAspect(new Prs3d_LineAspect(Quantity_NOC_BLACK, Aspect_TOL_SOLID, 2.0));
+        m_displayedElements[element] = aisShape;
+        m_viewer->GetContext()->Display(aisShape, Standard_True);
+    }
+    // 未来可以在这里添加对 Circle, Arc 等其他类型的显示支持
+}
+
+// 清除所有草图显示（退出时使用）
+void SketchMode::ClearAllSketchDisplay() {
+    if (!m_viewer || m_viewer->GetContext().IsNull()) return;
+    ClearPreviewDisplay();
+    for (auto const& [key, val] : m_displayedElements) {
+        m_viewer->GetContext()->Remove(val, Standard_False);
+    }
+    m_displayedElements.clear();
+    m_viewer->GetView()->Redraw();
 }
 
 } // namespace cad_ui

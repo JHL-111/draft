@@ -15,6 +15,10 @@
 #include "cad_sketch/Sketch.h"
 #include "cad_sketch/SketchLine.h"
 
+#include <TopoDS_Edge.hxx>
+#include <AIS_Shape.hxx>
+#include <map> 
+
 namespace cad_ui {
 
 // 前向声明
@@ -46,6 +50,7 @@ public:
 
 signals:
     void rectangleCreated(const std::vector<cad_sketch::SketchLinePtr>& lines);
+    void previewUpdated(const std::vector<cad_sketch::SketchLinePtr>& previewLines);
     void drawingCancelled();
 
 private:
@@ -128,6 +133,26 @@ private:
     void RestoreView();
     void CreateSketchCoordinateSystem();
     gp_Pln ExtractPlaneFromFace(const TopoDS_Face& face);
+
+    // 用于存储草图元素和其对应的可显示对象之间的映射关系
+    std::map<cad_sketch::SketchElementPtr, Handle(AIS_Shape)> m_displayedElements;
+
+    // 用于存储正在绘制的预览图形，方便快速清除
+    std::vector<Handle(AIS_Shape)> m_previewElements;
+    TopoDS_Edge ConvertLineToEdge(const cad_sketch::SketchLinePtr& line) const;
+
+    // 显示一个草图元素
+    void DisplaySketchElement(const cad_sketch::SketchElementPtr& element);
+
+    // 更新预览图形
+    void UpdatePreview(const std::vector<cad_sketch::SketchLinePtr>& previewLines);
+
+    // 清除所有草图的显示
+    void ClearAllSketchDisplay();
+
+    // 清除预览图形的显示
+    void ClearPreviewDisplay();
+
 };
 
 } // namespace cad_ui

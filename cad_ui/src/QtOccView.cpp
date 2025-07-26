@@ -433,7 +433,23 @@ void QtOccView::resizeEvent(QResizeEvent* event) {
 
 void QtOccView::mousePressEvent(QMouseEvent* event) {
     
+    // 优先处理草图模式
+    if (IsInSketchMode()) {
+        m_sketchMode->HandleMousePress(event);
+        return;
+    }
+
+    if (event->button() == Qt::LeftButton) {
+        // Start rotation
+        if (!m_view.IsNull()) {
+            m_view->StartRotation(event->pos().x(), event->pos().y());
+        }
+        HandleSelection(event->pos());
+    }
     
+    m_lastMousePos = event->pos();
+    m_currentMouseButton = event->button();
+
 	// 处理视图立方体的点击事件
     if (event->button() == Qt::LeftButton && !m_context.IsNull()) {
         m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
@@ -447,23 +463,6 @@ void QtOccView::mousePressEvent(QMouseEvent* event) {
                 return;
             }
         }
-    }
-
-    m_lastMousePos = event->pos();
-    m_currentMouseButton = event->button();
-
-    // 优先处理草图模式
-    if (IsInSketchMode()) {
-        m_sketchMode->HandleMousePress(event);
-        return;
-    }
-    
-    if (event->button() == Qt::LeftButton) {
-        // Start rotation
-        if (!m_view.IsNull()) {
-            m_view->StartRotation(event->pos().x(), event->pos().y());
-        }
-        HandleSelection(event->pos());
     }
 }
 
