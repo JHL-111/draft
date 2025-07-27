@@ -51,7 +51,7 @@ public:
     void SetView(Handle(V3d_View) view);
     
     // 获取当前绘制的矩形
-    std::vector<cad_sketch::SketchLinePtr> GetCurrentRectangle() const;
+    std::vector<cad_sketch::SketchElementPtr> GetCurrentRectangle() const;
 
 signals:
     void rectangleCreated(const std::vector<cad_sketch::SketchElementPtr>& lines);

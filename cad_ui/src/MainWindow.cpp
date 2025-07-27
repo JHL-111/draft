@@ -822,7 +822,8 @@ void MainWindow::ConnectSignals() {
     connect(m_exitSketchAction, &QAction::triggered, this, &MainWindow::OnExitSketchMode);
     connect(m_sketchRectangleAction, &QAction::triggered, this, &MainWindow::OnSketchRectangleTool);
     connect(m_sketchLineAction, &QAction::triggered, this, &MainWindow::OnSketchLineTool);
-    
+    connect(m_sketchCircleAction, &QAction::triggered, this, &MainWindow::OnSketchCircleTool); 
+
     // Selection mode combo box connected in CreateSelectionModeCombo()
     
     // Theme actions
@@ -2285,6 +2286,7 @@ void MainWindow::OnSketchModeEntered() {
     m_exitSketchAction->setEnabled(true);
     m_sketchRectangleAction->setEnabled(true);
     m_sketchLineAction->setEnabled(true);
+	m_sketchCircleAction->setEnabled(true);
     
     // Reset selection mode
     m_viewer->SetSelectionMode(0);  // Shape selection mode
@@ -2300,6 +2302,7 @@ void MainWindow::OnSketchModeExited() {
     m_exitSketchAction->setEnabled(false);
     m_sketchRectangleAction->setEnabled(false);
     m_sketchLineAction->setEnabled(false);
+	m_sketchCircleAction->setEnabled(false);
     
     // Reset any waiting states
     m_waitingForFaceSelection = false;

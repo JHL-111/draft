@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 {
     // 创建Qt应用程序对象 - 这是一切的开始！
     QApplication app(argc, argv);
-    
+
     // 设置应用程序属性 - 给我们的程序一个"身份证"
     app.setApplicationName("Ander CAD");        // 应用名称 - 我们的"艺名"
     app.setApplicationVersion("1.0.0");         // 版本号 - 我们现在还是"新生儿"
