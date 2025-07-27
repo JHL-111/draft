@@ -126,7 +126,8 @@ public:
     const cad_sketch::SketchPtr& GetCurrentSketch() const { return m_currentSketch; }
     const gp_Pln& GetSketchPlane() const { return m_sketchPlane; }
     const TopoDS_Face& GetSketchFace() const { return m_sketchFace; }
-    
+    const cad_sketch::SketchPtr& GetCurrentSketch() const { return m_currentSketch; }
+
     // 绘制工具
     void StartRectangleTool();
 	void StartLineTool();   

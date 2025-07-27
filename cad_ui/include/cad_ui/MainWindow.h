@@ -33,6 +33,8 @@
 #include "cad_core/OCAFManager.h"
 #include "cad_core/TransformCommand.h"
 #include "cad_feature/FeatureManager.h"
+#include "cad_sketch/Sketch.h"
+
 
 namespace cad_ui {
 
@@ -325,6 +327,8 @@ private:
     QPushButton* m_maximizeButton;
     QPushButton* m_closeButton;
     
+    cad_sketch::SketchPtr m_lastCompletedSketch;
+
     void CreateTitleBar();
     
 private slots:

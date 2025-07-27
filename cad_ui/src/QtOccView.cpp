@@ -1132,6 +1132,24 @@ void QtOccView::StartRectangleTool() {
     qDebug() << "Started rectangle tool";
 }
 
+void QtOccView::StartLineTool() {
+    if (!m_sketchMode || !m_sketchMode->IsInSketchMode()) {
+        qDebug() << "Cannot start line tool: not in sketch mode";
+        return;
+    }
+
+    m_sketchMode->StartLineTool();
+    qDebug() << "Started line tool";
+}
+
+cad_sketch::SketchPtr QtOccView::GetCurrentSketch() const {
+    if (m_sketchMode) {
+        return m_sketchMode->GetCurrentSketch();
+    }
+    return nullptr;
+}
+
+
 } // namespace cad_ui
 
 #include "QtOccView.moc"

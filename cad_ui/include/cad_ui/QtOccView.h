@@ -22,6 +22,7 @@
 
 #include "cad_core/Shape.h"
 #include "cad_core/SelectionManager.h"
+#include "cad_sketch/Sketch.h"
 
 namespace cad_ui {
 
@@ -100,6 +101,8 @@ public:
     void ExitSketchMode();
     void StartRectangleTool();
 	void StartLineTool();
+
+    cad_sketch::SketchPtr GetCurrentSketch() const;
 
 signals:
     void ShapeSelected(const cad_core::ShapePtr& shape);

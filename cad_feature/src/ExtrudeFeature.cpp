@@ -2,6 +2,11 @@
 #include "cad_core/CreateBoxCommand.h"
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <gp_Vec.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <TopoDS_Edge.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#pragma execution_character_set("utf-8")
 
 namespace cad_feature {
 
@@ -108,24 +113,55 @@ cad_core::ShapePtr ExtrudeFeature::ExtrudeSketch() const {
     if (!IsSketchValid()) {
         return nullptr;
     }
-    
+
     try {
-        // In a real implementation, this would:
-        // 1. Convert sketch elements to OCCT wire/face
-        // 2. Create extrusion vector from direction and distance
-        // 3. Use BRepPrimAPI_MakePrism to create the solid
-        
-        // For now, return a simple box as placeholder
+        // 1. 将草图中的所有线段 (SketchLine) 转换为 OpenCASCADE 的边 (TopoDS_Edge)
+        BRepBuilderAPI_MakeWire wireMaker;
+        const auto& elements = m_sketch->GetElements();
+        for (const auto& elem : elements) {
+            if (elem->GetType() == cad_sketch::SketchElementType::Line) {
+                auto sketchLine = std::static_pointer_cast<cad_sketch::SketchLine>(elem);
+                const auto& startPnt = sketchLine->GetStartPoint()->GetPoint().GetOCCTPoint();
+                const auto& endPnt = sketchLine->GetEndPoint()->GetPoint().GetOCCTPoint();
+
+                // 草图坐标是2D的(x,y)，我们需要把它转换回3D空间
+                TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(startPnt, endPnt).Edge();
+                wireMaker.Add(edge);
+            }
+        }
+
+        // 2. 从边集合创建成一个封闭的线框 (Wire)
+        TopoDS_Wire sketchWire = wireMaker.Wire();
+        if (sketchWire.IsNull()) {
+            return nullptr; // 如果无法形成线框，则失败
+        }
+
+        // 3. 从封闭的线框创建一个面 (Face)
+        TopoDS_Face sketchFace = BRepBuilderAPI_MakeFace(sketchWire).Face();
+        if (sketchFace.IsNull()) {
+            return nullptr; // 如果不是封闭轮廓，则失败
+        }
+
+        // 4. 定义拉伸向量
         double distance = GetDistance();
-        auto shape = std::make_shared<cad_core::Shape>();
-        
-        // Placeholder: create a simple box
-        // In real implementation, this would properly extrude the sketch
-        
-        return shape;
-    } catch (...) {
+        gp_Vec extrudeVector(0, 0, distance); // 暂时硬编码为沿Z轴拉伸
+
+        // 5. 执行拉伸操作 
+        BRepPrimAPI_MakePrism prismMaker(sketchFace, extrudeVector);
+        prismMaker.Build();
+
+        if (prismMaker.IsDone()) {
+            // 6. 返回拉伸成功后的新三维形状
+            return std::make_shared<cad_core::Shape>(prismMaker.Shape());
+        }
+
+    }
+    catch (const Standard_Failure& e) {
+        // 捕获OpenCASCADE的异常
         return nullptr;
     }
+
+    return nullptr;
 }
 
 } // namespace cad_feature

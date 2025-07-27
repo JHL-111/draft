@@ -11,6 +11,7 @@
 #include "cad_core/BooleanOperations.h"
 #include "cad_core/FilletChamferOperations.h"
 #include "cad_core/SelectionManager.h"
+#include "cad_feature/ExtrudeFeature.h"
 #include <TopoDS.hxx>
 
 #include <QApplication>
@@ -1169,7 +1170,44 @@ void MainWindow::OnCreateTorus() {
 
 
 void MainWindow::OnCreateExtrude() {
-    QMessageBox::information(this, "Create Extrude", "Extrude feature creation not implemented yet");
+    // 1. 检查有没有可用的草图
+    if (!m_lastCompletedSketch || m_lastCompletedSketch->IsEmpty()) {
+        QMessageBox::warning(this, "拉伸错误", "没有可用于拉伸的草图。请先绘制一个封闭的草图并退出草图模式。");
+        return;
+    }
+
+    // 2. 弹出一个对话框，让用户输入拉伸距离
+    bool ok;
+    double distance = QInputDialog::getDouble(this, "输入拉伸距离", "距离:", 10.0, 0.1, 1000.0, 2, &ok);
+
+    if (!ok) {
+        return; // 用户取消了输入
+    }
+
+    // 3. 创建一个 ExtrudeFeature 实例
+    auto extrudeFeature = std::make_shared<cad_feature::ExtrudeFeature>();
+    extrudeFeature->SetSketch(m_lastCompletedSketch);
+    extrudeFeature->SetDistance(distance);
+
+    // 4. 执行特征来创建3D形状
+    cad_core::ShapePtr resultShape = extrudeFeature->CreateShape();
+
+    // 5. 将新形状添加到文档并显示
+    if (resultShape && resultShape->IsValid()) {
+        m_ocafManager->StartTransaction("Extrude Sketch");
+        m_ocafManager->AddShape(resultShape, "Extrusion");
+        m_ocafManager->CommitTransaction();
+
+        m_viewer->DisplayShape(resultShape);
+        m_documentTree->AddShape(resultShape);
+
+        // 操作完成后，禁用拉伸按钮，防止重复使用同一个草图
+        m_createExtrudeAction->setEnabled(false);
+        m_lastCompletedSketch.reset(); // 清空已使用的草图
+    }
+    else {
+        QMessageBox::critical(this, "拉伸失败", "无法创建拉伸实体。请确保草图是封闭的。");
+    }
 }
 
 void MainWindow::OnDarkTheme() {
@@ -2121,8 +2159,15 @@ void MainWindow::OnExitSketchMode() {
     if (!m_viewer || !m_viewer->IsInSketchMode()) {
         return;
     }
-    
+
+    // 保存当前草图
+    m_lastCompletedSketch = m_viewer->GetCurrentSketch();
     m_viewer->ExitSketchMode();
+
+    // 如果草图有效，则启用拉伸按钮
+    if (m_lastCompletedSketch && !m_lastCompletedSketch->IsEmpty()) {
+        m_createExtrudeAction->setEnabled(true);
+    }
 }
 
 void MainWindow::OnSketchRectangleTool() {

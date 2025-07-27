@@ -375,6 +375,7 @@ void SketchMode::StartRectangleTool() {
     }
     
     StopCurrentTool();
+	m_activeTool = ActiveTool::Rectangle;
     emit statusMessageChanged("矩形工具 - 点击并拖拽创建矩形");
     
     qDebug() << "Started rectangle tool";
