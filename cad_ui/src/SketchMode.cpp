@@ -7,16 +7,18 @@
 #include <BRep_Tool.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
-#include <gp_Pln.hxx>
-#include <gp_Pnt.hxx>
-#include <gp_Dir.hxx>
-#include <Geom_Plane.hxx>
 #include <V3d_View.hxx>
 #include <cmath>
 #pragma execution_character_set("utf-8")
+#include <GeomAPI_IntCS.hxx>          
 #include <AIS_Shape.hxx>
+#include <AIS_InteractiveContext.hxx>
 #include <ElSLib.hxx>
-#include <V3d_View.hxx>
+#include <Prs3d_Drawer.hxx>
+#include <Prs3d_LineAspect.hxx>
+#include <Quantity_Color.hxx>
+#include <Aspect_TypeOfLine.hxx>
+#include <Graphic3d_Camera.hxx>
 
 namespace cad_ui {
 
@@ -41,15 +43,30 @@ void SketchRectangleTool::UpdateDrawing(const QPoint& currentPoint) {
     if (!m_isDrawing) {
         return;
     }
-    
+
     m_currentPoint = currentPoint;
-    
+
+    qDebug() << "UpdateDrawing: Start(" << m_startPoint.x() << "," << m_startPoint.y()
+        << ") Current(" << currentPoint.x() << "," << currentPoint.y() << ")";
+
     // 创建临时矩形线条用于预览
     gp_Pnt startPnt = ScreenToSketchPlane(m_startPoint);
     gp_Pnt currentPnt = ScreenToSketchPlane(m_currentPoint);
-    
+
+    qDebug() << "Converted points: Start(" << startPnt.X() << "," << startPnt.Y()
+        << ") Current(" << currentPnt.X() << "," << currentPnt.Y() << ")";
+
+    // 检查点是否有效
+    if (std::abs(currentPnt.X() - startPnt.X()) < 0.1 && std::abs(currentPnt.Y() - startPnt.Y()) < 0.1) {
+        qDebug() << "Points too close, skipping preview update";
+        return;
+    }
+
     m_currentLines = CreateRectangleLines(startPnt, currentPnt);
-	emit previewUpdated(m_currentLines);    
+
+    qDebug() << "Created" << m_currentLines.size() << "preview lines";
+
+    emit previewUpdated(m_currentLines);
 }
 
 void SketchRectangleTool::FinishDrawing(const QPoint& endPoint) {
@@ -100,23 +117,38 @@ std::vector<cad_sketch::SketchLinePtr> SketchRectangleTool::GetCurrentRectangle(
 
 gp_Pnt SketchRectangleTool::ScreenToSketchPlane(const QPoint& screenPoint) {
     if (m_view.IsNull()) {
+        qDebug() << "View is null in ScreenToSketchPlane";
         return gp_Pnt(0, 0, 0);
     }
 
-    Standard_Real aGridX, aGridY, aGridZ;
+    // 使用射线投影到平面
+    Standard_Real Xp, Yp, Zp, Xv, Yv, Zv;
+    m_view->Convert(screenPoint.x(), screenPoint.y(), Xp, Yp, Zp);
+    m_view->Proj(Xv, Yv, Zv);
 
-    // 使用 ConvertToGrid 函数，这是将屏幕点投影到视图平面的最直接方法
-    m_view->ConvertToGrid(screenPoint.x(), screenPoint.y(), aGridX, aGridY, aGridZ);
+    gp_Lin line(gp_Pnt(Xp, Yp, Zp), gp_Dir(Xv, Yv, Zv));
 
-    gp_Pnt aPntOnPlane(aGridX, aGridY, aGridZ);
+    // 计算射线与平面的交点
+    Handle(Geom_Plane) plane = new Geom_Plane(m_sketchPlane);
+    GeomAPI_IntCS intCS;
+    intCS.Perform(new Geom_Line(line), plane);
 
-    // 将计算出的3D点，再次投影到我们精确的草图平面上，以消除任何微小的浮点误差
-    Standard_Real u, v;
-    ElSLib::Parameters(m_sketchPlane, aPntOnPlane, u, v);
-    gp_Pnt2d pnt2d(u, v);
+    if (intCS.IsDone() && intCS.NbPoints() > 0) {
+        gp_Pnt result = intCS.Point(1);
 
-    // 返回一个在草图平面上的3D点（Z坐标为0）
-    return gp_Pnt(pnt2d.X(), pnt2d.Y(), 0);
+        // 将3D点转换到草图平面的2D坐标系
+        Standard_Real u, v;
+        ElSLib::Parameters(m_sketchPlane, result, u, v);
+
+        qDebug() << "ScreenToSketchPlane: Screen(" << screenPoint.x() << "," << screenPoint.y()
+            << ") -> Plane(" << u << "," << v << ")";
+
+        // 返回草图平面2D坐标系中的点
+        return gp_Pnt(u, v, 0);
+    }
+
+    qDebug() << "Failed to intersect ray with plane";
+    return gp_Pnt(0, 0, 0);
 }
 
 std::vector<cad_sketch::SketchLinePtr> SketchRectangleTool::CreateRectangleLines(
@@ -147,16 +179,89 @@ std::vector<cad_sketch::SketchLinePtr> SketchRectangleTool::CreateRectangleLines
     return lines;
 }
 
+
+// =============================================================================
+SketchLineTool::SketchLineTool(QObject* parent)
+    : QObject(parent), m_isDrawing(false) {
+    m_sketchPlane = gp_Pln(gp_Pnt(1.0e+100, 0, 0), gp_Dir(0, 0, 1));
+}
+
+void SketchLineTool::StartDrawing(const QPoint& startPoint) {
+    m_startPoint3d = ScreenToSketchPlane(startPoint);
+    m_isDrawing = true;
+}
+
+void SketchLineTool::UpdateDrawing(const QPoint& currentPoint) {
+    if (!m_isDrawing) return;
+    gp_Pnt currentPoint3d = ScreenToSketchPlane(currentPoint);
+
+    auto start = std::make_shared<cad_sketch::SketchPoint>(m_startPoint3d.X(), m_startPoint3d.Y());
+    auto end = std::make_shared<cad_sketch::SketchPoint>(currentPoint3d.X(), currentPoint3d.Y());
+    auto previewLine = std::make_shared<cad_sketch::SketchLine>(start, end);
+
+    emit previewUpdated({ previewLine });
+}
+
+void SketchLineTool::FinishDrawing(const QPoint& endPoint) {
+    if (!m_isDrawing) return;
+    m_isDrawing = false;
+
+    gp_Pnt endPoint3d = ScreenToSketchPlane(endPoint);
+
+    auto start = std::make_shared<cad_sketch::SketchPoint>(m_startPoint3d.X(), m_startPoint3d.Y());
+    auto end = std::make_shared<cad_sketch::SketchPoint>(endPoint3d.X(), endPoint3d.Y());
+
+    if (start->GetPoint().Distance(end->GetPoint()) > 1e-6) { // 避免创建零长度线
+        emit lineCreated(std::make_shared<cad_sketch::SketchLine>(start, end));
+    }
+    else {
+        emit drawingCancelled();
+    }
+}
+
+void SketchLineTool::CancelDrawing() {
+    if (!m_isDrawing) return;
+    m_isDrawing = false;
+    emit drawingCancelled();
+}
+
+void SketchLineTool::SetSketchPlane(const gp_Pln& plane) {
+    m_sketchPlane = plane;
+}
+
+void SketchLineTool::SetView(Handle(V3d_View) view) {
+    m_view = view;
+}
+
+gp_Pnt SketchLineTool::ScreenToSketchPlane(const QPoint& screenPoint) {
+    if (m_view.IsNull() || m_sketchPlane.Location().X() > 1.0e+99) {
+        return gp_Pnt(0, 0, 0);
+    }
+    Standard_Real aGridX, aGridY, aGridZ;
+    m_view->ConvertToGrid(screenPoint.x(), screenPoint.y(), aGridX, aGridY, aGridZ);
+    gp_Pnt aPntOnPlane(aGridX, aGridY, aGridZ);
+    Standard_Real u, v;
+    ElSLib::Parameters(m_sketchPlane, aPntOnPlane, u, v);
+    gp_Pnt2d pnt2d(u, v);
+    return gp_Pnt(pnt2d.X(), pnt2d.Y(), 0);
+}
+
+// =============================================================================
+// ^^^^^^^^^^^^^^  SketchLineTool Implementation End ^^^^^^^^^^^^^^
+// =============================================================================
+
+
 // =============================================================================
 // SketchMode Implementation
 // =============================================================================
 
 SketchMode::SketchMode(QtOccView* viewer, QObject* parent)
-    : QObject(parent), m_viewer(viewer), m_isActive(false) {
+    : QObject(parent), m_viewer(viewer), m_isActive(false), m_activeTool(ActiveTool::None){
     
     // 创建绘制工具
     m_rectangleTool = std::make_unique<SketchRectangleTool>(this);
-    
+	m_lineTool = std::make_unique<SketchLineTool>(this);
+
     // 连接信号槽
     connect(m_rectangleTool.get(), &SketchRectangleTool::rectangleCreated,
             this, &SketchMode::OnRectangleCreated);
@@ -164,6 +269,10 @@ SketchMode::SketchMode(QtOccView* viewer, QObject* parent)
             this, &SketchMode::OnDrawingCancelled);
     connect(m_rectangleTool.get(), &SketchRectangleTool::previewUpdated,
         this, &SketchMode::UpdatePreview);
+
+    connect(m_lineTool.get(), &SketchLineTool::lineCreated, this, &SketchMode::OnLineCreated);
+    connect(m_lineTool.get(), &SketchLineTool::previewUpdated, this, &SketchMode::UpdatePreview);
+    connect(m_lineTool.get(), &SketchLineTool::drawingCancelled, this, &SketchMode::OnDrawingCancelled);
 }
 
 bool SketchMode::EnterSketchMode(const TopoDS_Face& face) {
@@ -220,7 +329,9 @@ bool SketchMode::EnterSketchMode(const TopoDS_Face& face) {
         // 设置绘制工具
         m_rectangleTool->SetSketchPlane(m_sketchPlane);
         m_rectangleTool->SetView(m_viewer->GetView());
-        
+		m_lineTool->SetSketchPlane(m_sketchPlane);
+		m_lineTool->SetView(m_viewer->GetView());
+
         m_isActive = true;
         
         emit sketchModeEntered();
@@ -272,40 +383,58 @@ void SketchMode::StartRectangleTool() {
     qDebug() << "Started rectangle tool";
 }
 
+void SketchMode::StartLineTool() {
+    if (!m_isActive) {
+        return;
+    }
+   
+    StopCurrentTool();
+    m_activeTool = ActiveTool::Line; 
+    emit statusMessageChanged("直线工具 - 点击并拖拽创建直线");
+   
+    qDebug() << "Started line tool";
+}
+
 void SketchMode::StopCurrentTool() {
     if (m_rectangleTool && m_rectangleTool->IsDrawing()) {
         m_rectangleTool->CancelDrawing();
     }
+    if (m_lineTool && m_lineTool->IsDrawing()) {
+        m_lineTool->CancelDrawing();
+		m_activeTool = ActiveTool::None; 
+    }
 }
 
 void SketchMode::HandleMousePress(QMouseEvent* event) {
-    if (!m_isActive) {
-        return;
-    }
-    
-    if (event->button() == Qt::LeftButton) {
+    if (!m_isActive || event->button() != Qt::LeftButton) return;
+
+    if (m_activeTool == ActiveTool::Rectangle) {
         m_rectangleTool->StartDrawing(event->pos());
+    }
+    else if (m_activeTool == ActiveTool::Line) { 
+        m_lineTool->StartDrawing(event->pos());
     }
 }
 
 void SketchMode::HandleMouseMove(QMouseEvent* event) {
-    if (!m_isActive) {
-        return;
-    }
-    
-    if (m_rectangleTool->IsDrawing()) {
+    if (!m_isActive) return;
+
+    if (m_activeTool == ActiveTool::Rectangle) {
         m_rectangleTool->UpdateDrawing(event->pos());
-        // 可以在这里触发预览更新
+    }
+    else if (m_activeTool == ActiveTool::Line) { 
+        m_lineTool->UpdateDrawing(event->pos());
     }
 }
 
 void SketchMode::HandleMouseRelease(QMouseEvent* event) {
-    if (!m_isActive) {
-        return;
-    }
-    
-    if (event->button() == Qt::LeftButton && m_rectangleTool->IsDrawing()) {
+    if (!m_isActive || event->button() != Qt::LeftButton) return;
+
+    if (m_activeTool == ActiveTool::Rectangle) {
         m_rectangleTool->FinishDrawing(event->pos());
+    }
+    else if (m_activeTool == ActiveTool::Line) { 
+        m_lineTool->FinishDrawing(event->pos());
     }
 }
 
@@ -342,6 +471,20 @@ void SketchMode::OnRectangleCreated(const std::vector<cad_sketch::SketchLinePtr>
     qDebug() << "Added rectangle with" << lines.size() << "lines to sketch";
 }
 
+void SketchMode::OnLineCreated(const cad_sketch::SketchLinePtr& line) {
+    if (!m_currentSketch) {
+        return;
+    }
+
+    ClearPreviewDisplay();
+
+    m_currentSketch->AddElement(line);
+    DisplaySketchElement(line);
+    emit sketchElementCreated(line);
+
+    emit statusMessageChanged("创建了直线");
+}
+
 void SketchMode::OnDrawingCancelled() {
 	ClearPreviewDisplay(); // 清除预览图形    
     emit statusMessageChanged("绘制已取消");
@@ -357,52 +500,52 @@ void SketchMode::SetupSketchView() {
         qDebug() << "Warning: Cannot setup sketch view - viewer or view is null";
         return;
     }
-    
+
     try {
         Handle(V3d_View) view = m_viewer->GetView();
         Handle(Graphic3d_Camera) camera = view->Camera();
-        
+
         if (camera.IsNull()) {
             qDebug() << "Warning: Camera is null in SetupSketchView";
             return;
         }
-        
+
         // 获取草图平面的法向量和位置
         gp_Pnt planeOrigin = m_sketchPlane.Location();
         gp_Dir planeNormal = m_sketchPlane.Axis().Direction();
-        
-        // 验证方向向量 (gp_Dir已经是标准化的单位向量)
-        try {
-            gp_Dir testNormal = planeNormal;
-        } catch (...) {
-            qDebug() << "Warning: Invalid plane normal, using default Z direction";
-            planeNormal = gp_Dir(0, 0, 1);
-        }
-        
+
         // 设置视图方向（正对草图平面）
-        gp_Pnt eyePosition = planeOrigin.XYZ() + planeNormal.XYZ() * 100.0;
-        
-        // 验证坐标系Y方向
-        gp_Dir yDir;
-        try {
-            yDir = m_sketchCS.YDirection();
-        } catch (...) {
-            qDebug() << "Warning: Invalid Y direction, using default";
-            yDir = gp_Dir(0, 1, 0);
-        }
-        
+        // 将相机位置设置在平面前方一定距离
+        double viewDistance = 500.0; // 增加视距以确保能看到整个草图
+        gp_Pnt eyePosition = planeOrigin.XYZ() + planeNormal.XYZ() * viewDistance;
+
+        // 设置相机参数
         camera->SetEye(eyePosition);
         camera->SetCenter(planeOrigin);
+
+        // 设置向上方向 - 使用草图坐标系的Y方向
+        gp_Dir yDir = m_sketchCS.YDirection();
         camera->SetUp(yDir);
-        
+
         // 设置正交投影（对草图更合适）
         camera->SetProjectionType(Graphic3d_Camera::Projection_Orthographic);
-        
-        // 调整视图大小以适应面
-        view->FitAll();
+
+        // 设置合适的缩放比例
+        double scale = 100.0; // 根据需要调整
+        camera->SetScale(scale);
+
+        // 调整视图大小
+        view->FitAll(0.01, Standard_False);
         view->ZFitAll();
-        
-        qDebug() << "Setup sketch view - Eye:" << eyePosition.X() << eyePosition.Y() << eyePosition.Z();
+
+        // 强制重绘
+        view->Redraw();
+
+        qDebug() << "Setup sketch view completed:";
+        qDebug() << "  Eye:" << eyePosition.X() << eyePosition.Y() << eyePosition.Z();
+        qDebug() << "  Center:" << planeOrigin.X() << planeOrigin.Y() << planeOrigin.Z();
+        qDebug() << "  Normal:" << planeNormal.X() << planeNormal.Y() << planeNormal.Z();
+        qDebug() << "  Scale:" << scale;
     }
     catch (const std::exception& e) {
         qDebug() << "Error in SetupSketchView:" << e.what();
@@ -503,9 +646,12 @@ TopoDS_Edge SketchMode::ConvertLineToEdge(const cad_sketch::SketchLinePtr& line)
 void SketchMode::ClearPreviewDisplay() {
     if (!m_viewer || m_viewer->GetContext().IsNull()) return;
     for (const auto& shape : m_previewElements) {
-        m_viewer->GetContext()->Remove(shape, Standard_False);
+        m_viewer->GetContext()->Remove(shape, Standard_False); // 移除但不立即重绘
     }
     m_previewElements.clear();
+
+    // 通知查看器内容已更新
+    m_viewer->GetContext()->UpdateCurrentViewer();
 }
 
 // 更新预览图形
@@ -516,29 +662,52 @@ void SketchMode::UpdatePreview(const std::vector<cad_sketch::SketchLinePtr>& pre
 
     for (const auto& line : previewLines) {
         TopoDS_Edge edge = ConvertLineToEdge(line);
+        if (edge.IsNull()) {
+            continue;
+        }
         auto aisShape = new AIS_Shape(edge);
-        // 设置预览样式，例如虚线
         aisShape->Attributes()->SetLineAspect(new Prs3d_LineAspect(Quantity_NOC_BLUE1, Aspect_TOL_DOT, 2.0));
+
+        // 添加Z层设置，解决Z-Fighting问题
+        aisShape->SetZLayer(Graphic3d_ZLayerId_Topmost);
+
         m_previewElements.push_back(aisShape);
-        m_viewer->GetContext()->Display(aisShape, Standard_False);
+        m_viewer->GetContext()->Display(aisShape, Standard_False); // 显示但不立即重绘
     }
-    m_viewer->GetView()->Redraw(); // 立即重绘视图
+
+    // 在所有对象都添加完毕后，手动触发一次重绘
+    m_viewer->GetView()->Redraw();
 }
 
 // 显示最终的草图元素
 void SketchMode::DisplaySketchElement(const cad_sketch::SketchElementPtr& element) {
-    if (!m_viewer || m_viewer->GetContext().IsNull() || !element) return;
-
+    // 安全检查，确保视图和元素都有效
+    if (!m_viewer || m_viewer->GetContext().IsNull() || !element) {
+        return;
+    }
+    // 处理不同类型的草图元素（目前只有直线）
     if (element->GetType() == cad_sketch::SketchElementType::Line) {
         auto line = std::dynamic_pointer_cast<cad_sketch::SketchLine>(element);
+
+        // 将逻辑线段转换为OpenCASCADE的边
         TopoDS_Edge edge = ConvertLineToEdge(line);
+
         auto aisShape = new AIS_Shape(edge);
-        // 设置最终样式
         aisShape->Attributes()->SetLineAspect(new Prs3d_LineAspect(Quantity_NOC_BLACK, Aspect_TOL_SOLID, 2.0));
+
+        // 设置Z层，解决被模型表面遮挡（Z-Fighting）的问题
+        aisShape->SetZLayer(Graphic3d_ZLayerId_Topmost);
+
+        // 将草图元素与其对应的显示对象关联起来，方便后续管理
         m_displayedElements[element] = aisShape;
-        m_viewer->GetContext()->Display(aisShape, Standard_True);
+
+        // 将显示对象添加到3D场景中，但不立即重绘（Standard_False）
+        m_viewer->GetContext()->Display(aisShape, Standard_False);
     }
-    // 未来可以在这里添加对 Circle, Arc 等其他类型的显示支持
+    // 未来可以在这里添加对 Circle, Arc 等其他类型的显示支持\
+
+    m_viewer->GetContext()->UpdateCurrentViewer();
+    m_viewer->GetView()->Redraw();
 }
 
 // 清除所有草图显示（退出时使用）

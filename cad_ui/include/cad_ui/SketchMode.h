@@ -6,7 +6,12 @@
 #include <gp_Pnt.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Ax3.hxx>
+#include <gp_Lin.hxx>
+#include <gp_Pnt2d.hxx>
+#include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
+#include <TopoDS_Edge.hxx>
+#include <TopAbs.hxx>
 #include <V3d_View.hxx>
 #include <memory>
 #include <vector>
@@ -67,6 +72,40 @@ private:
     std::vector<cad_sketch::SketchLinePtr> CreateRectangleLines(const gp_Pnt& point1, const gp_Pnt& point2);
 };
 
+
+class SketchLineTool : public QObject {
+    Q_OBJECT
+
+public:
+    explicit SketchLineTool(QObject* parent = nullptr);
+
+    void StartDrawing(const QPoint& startPoint);
+    void UpdateDrawing(const QPoint& currentPoint);
+    void FinishDrawing(const QPoint& endPoint);
+    void CancelDrawing();
+
+    bool IsDrawing() const { return m_isDrawing; }
+
+    void SetSketchPlane(const gp_Pln& plane);
+    void SetView(Handle(V3d_View) view);
+
+signals:
+    void lineCreated(const cad_sketch::SketchLinePtr& line);
+    void previewUpdated(const std::vector<cad_sketch::SketchLinePtr>& previewLines);
+    void drawingCancelled();
+
+private:
+    bool m_isDrawing;
+    gp_Pnt m_startPoint3d; // 我们直接存储3D点
+
+    gp_Pln m_sketchPlane;
+    Handle(V3d_View) m_view;
+
+    gp_Pnt ScreenToSketchPlane(const QPoint& screenPoint);
+};
+
+
+
 /**
  * @class SketchMode
  * @brief 草图模式管理器
@@ -90,6 +129,7 @@ public:
     
     // 绘制工具
     void StartRectangleTool();
+	void StartLineTool();   
     void StopCurrentTool();
     
     // 鼠标事件处理
@@ -125,7 +165,10 @@ private:
     double m_savedScale;
     
     // 绘制工具
+    enum class ActiveTool { None, Rectangle, Line }; 
+    ActiveTool m_activeTool;                       
     std::unique_ptr<SketchRectangleTool> m_rectangleTool;
+    std::unique_ptr<SketchLineTool> m_lineTool;    
     
     // 私有方法
     void SetupSketchPlane(const TopoDS_Face& face);

@@ -9,6 +9,10 @@
 #include <map>
 #include <memory>
 
+#include <Geom_Plane.hxx>
+#include <Geom_Line.hxx>
+#include <Geom_Surface.hxx>
+
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_InteractiveContext.hxx>
