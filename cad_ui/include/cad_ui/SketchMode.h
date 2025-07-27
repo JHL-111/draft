@@ -54,8 +54,8 @@ public:
     std::vector<cad_sketch::SketchLinePtr> GetCurrentRectangle() const;
 
 signals:
-    void rectangleCreated(const std::vector<cad_sketch::SketchLinePtr>& lines);
-    void previewUpdated(const std::vector<cad_sketch::SketchLinePtr>& previewLines);
+    void rectangleCreated(const std::vector<cad_sketch::SketchElementPtr>& lines);
+    void previewUpdated(const std::vector<cad_sketch::SketchElementPtr>& previewElements);
     void drawingCancelled();
 
 private:
@@ -65,11 +65,11 @@ private:
     gp_Pln m_sketchPlane;
     Handle(V3d_View) m_view;
     
-    std::vector<cad_sketch::SketchLinePtr> m_currentLines;
+    std::vector<cad_sketch::SketchElementPtr> m_currentLines;
     
     // 辅助方法
     gp_Pnt ScreenToSketchPlane(const QPoint& screenPoint);
-    std::vector<cad_sketch::SketchLinePtr> CreateRectangleLines(const gp_Pnt& point1, const gp_Pnt& point2);
+    std::vector<cad_sketch::SketchElementPtr> CreateRectangleLines(const gp_Pnt& point1, const gp_Pnt& point2);
 };
 
 
@@ -91,7 +91,7 @@ public:
 
 signals:
     void lineCreated(const cad_sketch::SketchLinePtr& line);
-    void previewUpdated(const std::vector<cad_sketch::SketchLinePtr>& previewLines);
+    void previewUpdated(const std::vector<cad_sketch::SketchElementPtr>& previewElements);
     void drawingCancelled();
 
 private:
@@ -104,6 +104,36 @@ private:
     gp_Pnt ScreenToSketchPlane(const QPoint& screenPoint);
 };
 
+class SketchCircleTool : public QObject {
+    Q_OBJECT // 确保这个宏存在
+
+public:
+    explicit SketchCircleTool(QObject* parent = nullptr);
+
+    void StartDrawing(const QPoint& centerPoint);
+    void UpdateDrawing(const QPoint& currentPoint);
+    void FinishDrawing(const QPoint& radiusPoint);
+    void CancelDrawing();
+
+    bool IsDrawing() const { return m_isDrawing; }
+
+    void SetSketchPlane(const gp_Pln& plane);
+    void SetView(Handle(V3d_View) view);
+
+signals:
+    void circleCreated(const cad_sketch::SketchCirclePtr& circle);
+    void previewUpdated(const std::vector<cad_sketch::SketchElementPtr>& previewElements);
+    void drawingCancelled();
+
+private:
+    bool m_isDrawing;
+    gp_Pnt m_centerPoint3d;
+
+    gp_Pln m_sketchPlane;
+    Handle(V3d_View) m_view;
+
+    gp_Pnt ScreenToSketchPlane(const QPoint& screenPoint);
+};
 
 
 /**
@@ -129,7 +159,8 @@ public:
 
     // 绘制工具
     void StartRectangleTool();
-	void StartLineTool();   
+	void StartLineTool();
+	void StartCircleTool();
     void StopCurrentTool();
     
     // 鼠标事件处理
@@ -145,8 +176,9 @@ signals:
     void statusMessageChanged(const QString& message);
 
 private slots:
-    void OnRectangleCreated(const std::vector<cad_sketch::SketchLinePtr>& lines);
+    void OnRectangleCreated(const std::vector<cad_sketch::SketchElementPtr>& lines);
     void OnLineCreated(const cad_sketch::SketchLinePtr& line);
+	void OnCircleCreated(const cad_sketch::SketchCirclePtr& circle);
     void OnDrawingCancelled();
 
 private:
@@ -166,10 +198,11 @@ private:
     double m_savedScale;
     
     // 绘制工具
-    enum class ActiveTool { None, Rectangle, Line }; 
+    enum class ActiveTool { None, Rectangle, Line, Circle}; 
     ActiveTool m_activeTool;                       
     std::unique_ptr<SketchRectangleTool> m_rectangleTool;
-    std::unique_ptr<SketchLineTool> m_lineTool;    
+    std::unique_ptr<SketchLineTool> m_lineTool; 
+	std::unique_ptr<SketchCircleTool> m_circleTool;
     
     // 私有方法
     void SetupSketchPlane(const TopoDS_Face& face);
@@ -184,6 +217,7 @@ private:
     // 用于存储正在绘制的预览图形，方便快速清除
     std::vector<Handle(AIS_Shape)> m_previewElements;
     TopoDS_Edge ConvertLineToEdge(const cad_sketch::SketchLinePtr& line) const;
+	TopoDS_Edge ConvertCircleToEdge(const cad_sketch::SketchCirclePtr& circle) const;
 
     // 显示一个草图元素
     void DisplaySketchElement(const cad_sketch::SketchElementPtr& element);

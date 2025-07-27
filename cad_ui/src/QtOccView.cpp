@@ -1142,6 +1142,16 @@ void QtOccView::StartLineTool() {
     qDebug() << "Started line tool";
 }
 
+void QtOccView::StartCircleTool() {
+    if (!m_sketchMode || !m_sketchMode->IsInSketchMode()) {
+        qDebug() << "Cannot start circle tool: not in sketch mode";
+        return;
+    }
+
+    m_sketchMode->StartCircleTool();
+    qDebug() << "Started circle tool";
+}
+
 cad_sketch::SketchPtr QtOccView::GetCurrentSketch() const {
     if (m_sketchMode) {
         return m_sketchMode->GetCurrentSketch();

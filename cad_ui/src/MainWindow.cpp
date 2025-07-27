@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget* parent)
     } else {
         qDebug() << "Failed to load stylesheet from resources";
         // Fallback: try to load from file system for development
-        QFile fallbackFile("C:\\Users\\Administrator\\source\\repos\\AnderCAD\\cad_ui\\resources\\styles.qss");
+        QFile fallbackFile("C:\\Users\\Administrator\\source\\repos\\draft\\draft\\cad_ui\\resources\\styles.qss");
         if (fallbackFile.open(QFile::ReadOnly | QFile::Text)) {
             QTextStream fallbackStream(&fallbackFile);
             QString fallbackStyle = fallbackStream.readAll();
@@ -282,6 +282,11 @@ void MainWindow::CreateActions() {
     m_sketchLineAction->setStatusTip("Draw line in sketch mode");
     m_sketchLineAction->setEnabled(false);  // 初始禁用
 
+    m_sketchCircleAction = new QAction("&Circle", this);
+    m_sketchCircleAction->setShortcut(QKeySequence("C"));
+    m_sketchCircleAction->setStatusTip("Draw circle in sketch mode");
+    m_sketchCircleAction->setEnabled(false);  // 初始禁用
+
     // Selection mode now handled by combo box - old actions commented out for testing
     
     // Selection mode group now handled by combo box
@@ -364,6 +369,8 @@ void MainWindow::CreateMenus() {
     sketchMenu->addAction(m_exitSketchAction);
     sketchMenu->addSeparator();
     sketchMenu->addAction(m_sketchRectangleAction);
+	sketchMenu->addAction(m_sketchLineAction);
+	sketchMenu->addAction(m_sketchCircleAction);
     
     // Selection menu - now handled by combo box in toolbar
     
@@ -716,6 +723,11 @@ void MainWindow::CreateToolBars() {
     lineBtn->setDefaultAction(m_sketchLineAction);
     lineBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     sketchToolsButtonsLayout->addWidget(lineBtn);
+
+    QToolButton* circleBtn = new QToolButton();
+    circleBtn->setDefaultAction(m_sketchCircleAction);
+    circleBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    sketchToolsButtonsLayout->addWidget(circleBtn);
 
     sketchToolsLayout->addLayout(sketchToolsButtonsLayout);
     sketchLayout->addWidget(sketchToolsFrame);
@@ -2186,6 +2198,15 @@ void MainWindow::OnSketchLineTool() {
 
     m_viewer->StartLineTool();
     statusBar()->showMessage("直线工具已激活 - 点击并拖拽创建直线");
+}
+
+void MainWindow::OnSketchCircleTool() {
+    if (!m_viewer || !m_viewer->IsInSketchMode()) {
+        return;
+    }
+
+    m_viewer->StartCircleTool();
+    statusBar()->showMessage("圆形工具已激活 - 点击确定圆心，拖拽确定半径");
 }
 
 void MainWindow::OnFaceSelected(const TopoDS_Face& face) {

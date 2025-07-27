@@ -101,6 +101,7 @@ public:
     void ExitSketchMode();
     void StartRectangleTool();
 	void StartLineTool();
+	void StartCircleTool();
 
     cad_sketch::SketchPtr GetCurrentSketch() const;
 
