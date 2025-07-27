@@ -146,6 +146,7 @@ signals:
 
 private slots:
     void OnRectangleCreated(const std::vector<cad_sketch::SketchLinePtr>& lines);
+    void OnLineCreated(const cad_sketch::SketchLinePtr& line);
     void OnDrawingCancelled();
 
 private:

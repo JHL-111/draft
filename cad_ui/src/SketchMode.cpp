@@ -263,12 +263,9 @@ SketchMode::SketchMode(QtOccView* viewer, QObject* parent)
 	m_lineTool = std::make_unique<SketchLineTool>(this);
 
     // 连接信号槽
-    connect(m_rectangleTool.get(), &SketchRectangleTool::rectangleCreated,
-            this, &SketchMode::OnRectangleCreated);
-    connect(m_rectangleTool.get(), &SketchRectangleTool::drawingCancelled,
-            this, &SketchMode::OnDrawingCancelled);
-    connect(m_rectangleTool.get(), &SketchRectangleTool::previewUpdated,
-        this, &SketchMode::UpdatePreview);
+    connect(m_rectangleTool.get(), &SketchRectangleTool::rectangleCreated, this, &SketchMode::OnRectangleCreated);
+    connect(m_rectangleTool.get(), &SketchRectangleTool::drawingCancelled, this, &SketchMode::OnDrawingCancelled);
+    connect(m_rectangleTool.get(), &SketchRectangleTool::previewUpdated, this, &SketchMode::UpdatePreview);
 
     connect(m_lineTool.get(), &SketchLineTool::lineCreated, this, &SketchMode::OnLineCreated);
     connect(m_lineTool.get(), &SketchLineTool::previewUpdated, this, &SketchMode::UpdatePreview);

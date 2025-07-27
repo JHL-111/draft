@@ -99,6 +99,7 @@ public:
     void EnterSketchMode(const TopoDS_Face& face);
     void ExitSketchMode();
     void StartRectangleTool();
+	void StartLineTool();
 
 signals:
     void ShapeSelected(const cad_core::ShapePtr& shape);
